@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17-trixie
+    container_name: postgres_vector
+    environment:
+      POSTGRES_DB: langchain_vector
+      POSTGRES_USER: langchain_user
+      POSTGRES_PASSWORD: langchain_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
