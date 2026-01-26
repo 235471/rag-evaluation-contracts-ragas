@@ -141,27 +141,17 @@ def bootstrap_pgvector_table(
 
     # Create unique index on content_hash
     if create_unique_index:
-        # Parse connection string for psycopg format
-        # From: postgresql+psycopg://user:pass@host:port/db
-        # To: dbname=db user=user password=pass host=host
-        url = settings.POSTGRES_URL
+        from sqlalchemy.engine import make_url
 
-        # Extract parts from URL
-        import re
+        url_obj = make_url(settings.POSTGRES_URL)
 
-        match = re.match(
-            r"postgresql\+psycopg://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", url
-        )
-        if not match:
-            raise ValueError(f"Could not parse POSTGRES_URL: {url}")
-
-        user, password, host, port, dbname = match.groups()
-        conn_string = (
-            f"dbname={dbname} user={user} password={password} host={host} port={port}"
-        )
+        # psycopg3 supports connection URIs directly.
+        # We just need to ensure it's in a format it understands (strip +psycopg if present)
+        pg_uri = settings.POSTGRES_URL.replace("postgresql+psycopg://", "postgresql://")
 
         try:
-            conn = psycopg.connect(conn_string)
+            # psycopg.connect supports URIs
+            conn = psycopg.connect(pg_uri)
             with conn.cursor() as cur:
                 index_name = f"idx_unique_content_hash_{table_name}"
                 cur.execute(
@@ -177,4 +167,5 @@ def bootstrap_pgvector_table(
             logger.error(f"Failed to create unique index: {e}")
             raise
         finally:
-            conn.close()
+            if "conn" in locals() and conn:
+                conn.close()

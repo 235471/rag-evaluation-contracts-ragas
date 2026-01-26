@@ -43,6 +43,8 @@ def setup_logging(
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("transformers").setLevel(logging.WARNING)
+    logging.getLogger("langsmith").setLevel(logging.WARNING)
+    logging.getLogger("google.genai").setLevel(logging.WARNING)
 
     return logging.getLogger("rag_app")
 

@@ -123,7 +123,7 @@ def get_embeddings(provider: Optional[str] = None):
 def get_llm(
     provider: Optional[str] = None,
     model: Optional[str] = None,
-    temperature: float = 0.4,
+    temperature: float = 0.3,
 ):
     """
     Factory function to get LLM based on provider.
@@ -174,10 +174,10 @@ def get_llm(
 def get_eval_llm():
     """Get LLM specifically configured for RAGAS evaluation."""
     settings = get_settings()
-    from langchain_community.chat_models import ChatPerplexity
+    from langchain_perplexity import ChatPerplexity
 
     return ChatPerplexity(
-        model="sonar",
+        model="sonar-pro",
         pplx_api_key=settings.PPLX_API_KEY,
         temperature=0.1,
     )

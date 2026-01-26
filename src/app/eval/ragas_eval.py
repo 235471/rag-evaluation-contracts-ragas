@@ -197,17 +197,33 @@ def format_metrics_summary(eval_result) -> str:
 
     df = eval_result.to_pandas()
 
-    # Get metric columns (exclude question, answer, contexts, ground_truth)
-    metric_cols = [
-        c
-        for c in df.columns
-        if c not in ["question", "answer", "contexts", "ground_truth"]
+    # Get metric columns (exclude common non-metric columns in RAGAS 0.1 and 0.2)
+    excluded_cols = [
+        "question",
+        "answer",
+        "contexts",
+        "ground_truth",
+        "user_input",
+        "retrieved_contexts",
+        "response",
+        "reference",
     ]
+    metric_cols = [c for c in df.columns if c not in excluded_cols]
 
     lines = ["📊 RAGAS Evaluation Summary", "=" * 40]
 
     for col in metric_cols:
-        mean_val = df[col].mean()
-        lines.append(f"{col}: {mean_val:.4f}")
+        try:
+            # Ensure we only try to average numeric columns
+            if pd.api.types.is_numeric_dtype(df[col]):
+                mean_val = df[col].mean()
+                if pd.isna(mean_val):
+                    lines.append(f"{col}: N/A (all timed out)")
+                else:
+                    lines.append(f"{col}: {mean_val:.4f}")
+            else:
+                logger.debug(f"Skipping non-numeric column in summary: {col}")
+        except Exception as e:
+            logger.warning(f"Could not calculate mean for column {col}: {e}")
 
     return "\n".join(lines)

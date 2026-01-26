@@ -1,0 +1,6 @@
+[
+  {
+    "question": "Caso o mesmo item possua dois Bilhetes de Seguro de Garantia Estendida emitidos em períodos distintos, os benefícios se acumulam?",
+    "ground_truth": "Os benefícios não serão acumulados em caso de sinistro."
+  }
+]

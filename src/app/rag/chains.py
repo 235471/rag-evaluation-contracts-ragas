@@ -248,6 +248,75 @@ def build_rag_chain_with_context_full(retriever, llm):
     return rag_chain_with_context_full
 
 
+def build_rag_chain_with_rerank(
+    retriever,
+    llm,
+    reranker_llm=None,
+    initial_k: int = 20,
+    rerank_top_k: int = 3,
+):
+    """
+    Build a RAG chain with LLM-based reranking.
+
+    Structure:
+    1. Retrieve k=20 initial candidates
+    2. Use LLM judge to score each document's relevance (1-10)
+    3. Keep top 3 highest-scored documents
+    4. Generate answer using reranked context
+    5. Return: {"query": ..., "answer": ..., "contexts": [...], "docs": [...]}
+
+    Args:
+        retriever: Vector store retriever
+        llm: Language model for answering
+        reranker_llm: LLM for reranking (defaults to gemma-3-27b-it)
+        initial_k: Number of initial documents to retrieve
+        rerank_top_k: Number of top documents to keep after reranking
+
+    Returns:
+        LCEL chain with reranking
+    """
+    from src.app.rag.lcel_helpers import create_reranker_lambda
+
+    # Update retriever k for initial retrieval
+    if hasattr(retriever, "search_kwargs"):
+        retriever.search_kwargs["k"] = initial_k
+
+    answer_chain = build_answer_chain(llm)
+    reranker_fn = create_reranker_lambda(llm=reranker_llm, top_k=rerank_top_k)
+
+    rag_chain_with_rerank = (
+        # 1️⃣ Input → query + docs_raw (initial retrieval)
+        RunnableMap(
+            {
+                "query": RunnablePassthrough(),
+                "docs_raw": retriever,
+            }
+        )
+        # 2️⃣ Rerank using LLM judge
+        | RunnableAssign({"docs": RunnableLambda(reranker_fn)})
+        # 3️⃣ Derive contexts only from reranked docs
+        | RunnableAssign({"contexts": RunnableLambda(docs_chunks_queried)})
+        # 4️⃣ Generate answer
+        | RunnableAssign(
+            {
+                "answer": (
+                    {
+                        "context": itemgetter("contexts")
+                        | RunnableLambda(join_contexts),
+                        "query": itemgetter("query"),
+                    }
+                    | answer_chain
+                )
+            }
+        )
+    )
+
+    logger.debug(
+        f"Built rag_chain_with_rerank (initial_k={initial_k}, rerank_top_k={rerank_top_k})"
+    )
+    return rag_chain_with_rerank
+
+
 # Convenience function to get a default chain
 def get_default_rag_chain(
     vectorstore_backend: str = "postgres",

@@ -101,3 +101,92 @@ def format_docs_for_context(docs: List["Document"]) -> str:
         Formatted context string
     """
     return "\n\n".join([doc.page_content for doc in docs])
+
+
+def llm_rerank_docs(
+    docs: List["Document"],
+    query: str,
+    llm=None,
+    top_k: int = 3,
+) -> List["Document"]:
+    """
+    Rerank documents using an LLM as judge.
+
+    Evaluates each document's relevance to the query on a 1-10 scale,
+    then returns the top_k highest-scored documents.
+
+    Args:
+        docs: List of Document objects to rerank
+        query: The user's query
+        llm: LLM to use for scoring (defaults to gemma-3-27b-it via Gemini)
+        top_k: Number of top documents to return
+
+    Returns:
+        List of top_k most relevant Document objects
+    """
+    from langchain_core.output_parsers import StrOutputParser
+    from src.app.rag.prompts import get_reranker_prompt
+    from src.app.logging_conf import get_logger
+
+    logger = get_logger(__name__)
+
+    if llm is None:
+        from src.app.config import get_llm
+
+        llm = get_llm(provider="gemini", model="gemma-3-27b-it", temperature=0.1)
+
+    reranker_prompt = get_reranker_prompt()
+    reranker_chain = reranker_prompt | llm | StrOutputParser()
+
+    scored_docs = []
+
+    for i, doc in enumerate(docs):
+        try:
+            score_str = reranker_chain.invoke(
+                {
+                    "query": query,
+                    "document": doc.page_content,
+                }
+            )
+            # Parse score (handle potential text around the number)
+            score = int("".join(filter(str.isdigit, score_str[:5])) or "5")
+            score = max(1, min(10, score))  # Clamp to 1-10
+            scored_docs.append((score, doc))
+            logger.debug(f"Doc {i+1}/{len(docs)}: score={score}")
+        except Exception as e:
+            logger.warning(f"Failed to score doc {i+1}: {e}, assigning default score 5")
+            scored_docs.append((5, doc))
+
+    # Sort by score descending and take top_k
+    scored_docs.sort(key=lambda x: x[0], reverse=True)
+    reranked = [doc for _, doc in scored_docs[:top_k]]
+
+    logger.info(
+        f"Reranked {len(docs)} docs -> top {len(reranked)} (scores: {[s for s, _ in scored_docs[:top_k]]})"
+    )
+    return reranked
+
+
+def create_reranker_lambda(llm=None, top_k: int = 3):
+    """
+    Create a RunnableLambda-compatible reranker function.
+
+    This is used in LCEL chains where the input is a dict with 'query' and 'docs_raw'.
+
+    Args:
+        llm: LLM for reranking (defaults to gemma-3-27b-it)
+        top_k: Number of top documents to keep
+
+    Returns:
+        A function compatible with RunnableLambda
+    """
+
+    def _rerank(x: Dict[str, Any]) -> List["Document"]:
+        return llm_rerank_docs(
+            docs=x["docs_raw"],
+            query=x["query"],
+            llm=llm,
+            top_k=top_k,
+        )
+
+    return _rerank

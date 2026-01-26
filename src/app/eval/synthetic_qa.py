@@ -186,5 +186,4 @@ def load_chunks_from_documents(
     splitter = create_text_splitter(chunking_config)
     chunks = splitter.split_documents(pdfs)
     logger.info(f"Created {len(chunks)} chunks")
-
     return chunks

@@ -7,8 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 
 
 # System prompt for RAG responses
-SYSTEM_PROMPT = """Responda usando exclusivamente o conteúdo fornecido, seja conciso em sua resposta.
-
+SYSTEM_PROMPT = """Baseie sua resposta exclusivamente no conteúdo fornecido. Se a informação estiver explicitamente presente, responda de forma direta e objetiva. Se não estiver, diga que não é possível responder com os dados fornecidos.
 Context:
 {context}"""
 
@@ -83,3 +82,28 @@ Trecho: {context}
 def get_synthetic_qa_prompt() -> ChatPromptTemplate:
     """Get the synthetic Q/A generation prompt template."""
     return ChatPromptTemplate.from_template(SYNTHETIC_QA_PROMPT_TEMPLATE)
+
+
+# LLM Reranker prompt template
+LLM_RERANKER_PROMPT_TEMPLATE = """Você é um juiz especialista em avaliar a relevância de documentos para responder perguntas.
+
+**Pergunta do usuário:**
+{query}
+
+**Documento a avaliar:**
+{document}
+
+**Tarefa:**
+Avalie de 1 a 10 o quão relevante este documento é para responder a pergunta.
+- 1-3: Não relevante ou tangencialmente relacionado
+- 4-6: Parcialmente relevante, contém algumas informações úteis
+- 7-10: Altamente relevante, contém informações diretas para responder
+
+Responda APENAS com um número inteiro de 1 a 10, sem explicações adicionais.
+
+Nota:"""
+
+
+def get_reranker_prompt() -> PromptTemplate:
+    """Get the LLM reranker prompt template."""
+    return PromptTemplate.from_template(LLM_RERANKER_PROMPT_TEMPLATE)

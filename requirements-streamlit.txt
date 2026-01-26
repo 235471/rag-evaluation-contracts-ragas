@@ -1,0 +1,33 @@
+# Streamlit Cloud Dependencies
+# Optimized for cloud deployment
+
+# Core Streamlit
+streamlit>=1.40.0
+plotly>=5.24.0
+
+# LangChain
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-groq>=0.2.0
+
+# Vector Stores
+langchain-postgres>=0.0.12
+langchain-pinecone>=0.2.0
+pinecone>=5.0.0
+
+# Database (Supabase PGVector)
+psycopg[binary]>=3.2.0
+sqlalchemy>=2.0.0
+
+# Document Processing
+pypdf>=5.0.0
+
+# Tokenization
+tiktoken>=0.8.0
+
+# Utilities
+python-dotenv>=1.0.0
+pandas>=2.0.0
+pydantic>=2.0.0

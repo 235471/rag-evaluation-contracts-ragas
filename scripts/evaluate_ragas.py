@@ -75,8 +75,14 @@ def main():
     parser.add_argument(
         "--k",
         type=int,
-        default=2,
-        help="Number of documents to retrieve (default: 2)",
+        default=20,
+        help="Number of initial documents to retrieve (default: 20)",
+    )
+    parser.add_argument(
+        "--rerank-k",
+        type=int,
+        default=3,
+        help="Number of documents to keep after reranking (default: 3)",
     )
 
     parser.add_argument(
@@ -128,10 +134,15 @@ def main():
         retriever = vector_store.as_retriever(search_kwargs={"k": args.k})
         llm = get_llm()
 
-        # Build RAG chain
-        from src.app.rag.chains import build_rag_chain_with_context_full
+        # Build RAG chain (Rerank Version)
+        from src.app.rag.chains import build_rag_chain_with_rerank
 
-        rag_chain = build_rag_chain_with_context_full(retriever, llm)
+        logger.info(
+            f"Building RAG chain with Reranker (initial_k={args.k}, rerank_k={args.rerank_k})"
+        )
+        rag_chain = build_rag_chain_with_rerank(
+            retriever=retriever, llm=llm, initial_k=args.k, rerank_top_k=args.rerank_k
+        )
 
         # Run RAG on all test cases
         logger.info(f"Running RAG on {len(test_cases)} test cases...")
@@ -170,6 +181,10 @@ def main():
             export_results,
             format_metrics_summary,
         )
+
+        if len(results_list) < 1:
+            logger.warning("No results to evaluate")
+            return
 
         dataset = build_ragas_dataset(results_list)
 

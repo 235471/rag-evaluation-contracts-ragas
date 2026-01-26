@@ -43,15 +43,27 @@ def main():
     parser.add_argument(
         "--chain-type",
         type=str,
-        choices=["base", "rewriter", "multiquery", "hyde", "full"],
+        choices=["base", "rewriter", "multiquery", "hyde", "full", "rerank"],
         default="full",
-        help="Type of RAG chain to use (default: full for rag_chain_with_context_full)",
+        help="Type of RAG chain to use (default: full, rerank uses LLM judge)",
     )
     parser.add_argument(
         "--k",
         type=int,
         default=2,
-        help="Number of documents to retrieve (default: 2)",
+        help="Number of documents to retrieve (default: 2, ignored for rerank)",
+    )
+    parser.add_argument(
+        "--initial-k",
+        type=int,
+        default=20,
+        help="Initial candidates for rerank chain (default: 20)",
+    )
+    parser.add_argument(
+        "--rerank-k",
+        type=int,
+        default=3,
+        help="Top docs to keep after reranking (default: 3)",
     )
     parser.add_argument(
         "--llm-provider",
@@ -107,6 +119,7 @@ def main():
             build_multi_query_chain,
             build_hyde_chain,
             build_rag_chain_with_context_full,
+            build_rag_chain_with_rerank,
         )
 
         if args.chain_type == "base":
@@ -131,6 +144,15 @@ def main():
             chain = build_hyde_chain(retriever, llm)
             result = chain.invoke(args.question)
             output = {"query": args.question, "answer": result, "contexts": []}
+
+        elif args.chain_type == "rerank":
+            chain = build_rag_chain_with_rerank(
+                retriever,
+                llm,
+                initial_k=args.initial_k,
+                rerank_top_k=args.rerank_k,
+            )
+            output = chain.invoke(args.question)
 
         else:  # full
             chain = build_rag_chain_with_context_full(retriever, llm)
