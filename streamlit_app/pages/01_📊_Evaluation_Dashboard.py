@@ -23,13 +23,41 @@ inject_custom_css()
 
 
 def load_metrics(file_path: str = "my_eval_metrics.csv") -> pd.DataFrame:
-    """Load RAGAS metrics from CSV file."""
+    """Load RAGAS metrics from CSV file and calculate composite score."""
     try:
         df = pd.read_csv(file_path)
+        if not df.empty:
+            df = calculate_composite_score(df)
         return df
     except FileNotFoundError:
         st.error(f"Arquivo não encontrado: {file_path}")
         return pd.DataFrame()
+
+
+def calculate_composite_score(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate a composite score based on weighted RAGAS metrics.
+    Weights: Faithfulness (35%), Recall (30%), Correctness (20%), Precision (15%)
+    """
+    weights = {
+        "faithfulness": 0.35,
+        "context_recall": 0.30,
+        "answer_correctness": 0.20,
+        "context_precision": 0.15,
+    }
+
+    # Ensure all required columns exist
+    for col in weights.keys():
+        if col not in df.columns:
+            df[col] = 0.0
+
+    df["composite_score"] = (
+        weights["faithfulness"] * df["faithfulness"]
+        + weights["context_recall"] * df["context_recall"]
+        + weights["answer_correctness"] * df["answer_correctness"]
+        + weights["context_precision"] * df["context_precision"]
+    )
+    return df
 
 
 def create_metrics_radar(df: pd.DataFrame) -> go.Figure:
@@ -108,26 +136,44 @@ def create_metrics_bar(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def create_metrics_heatmap(df: pd.DataFrame) -> go.Figure:
-    """Create heatmap of all metrics."""
+def create_metrics_heatmap(
+    df: pd.DataFrame, include_composite: bool = False
+) -> go.Figure:
+    """Create heatmap of all metrics, optionally including the composite score."""
     metrics_cols = [
         "faithfulness",
         "answer_correctness",
         "context_precision",
         "context_recall",
     ]
+
+    if include_composite and "composite_score" in df.columns:
+        metrics_cols = ["composite_score"] + metrics_cols
+
     available_cols = [col for col in metrics_cols if col in df.columns]
 
     if not available_cols:
         return None
 
+    # Create question labels
     q_labels = [f"Q{i+1}" for i in range(len(df))]
+
+    # Format labels for the Y axis with clear separation
+    labels = []
+    for col in available_cols:
+        if col == "composite_score":
+            labels.append("⭐ COMPOSITE SCORE")
+        else:
+            labels.append(f"📊 {col.replace('_', ' ').title()}")
+
+    # Add a visual separator in the data if composite is included
+    # (Optional: we can just use the labels to differentiate)
 
     fig = go.Figure(
         data=go.Heatmap(
             z=df[available_cols].values.T,
             x=q_labels,
-            y=[col.replace("_", " ").title() for col in available_cols],
+            y=labels,
             colorscale="RdYlGn",
             zmin=0,
             zmax=1,
@@ -138,7 +184,8 @@ def create_metrics_heatmap(df: pd.DataFrame) -> go.Figure:
     )
 
     fig.update_layout(
-        title="Heatmap de Métricas",
+        title="Heatmap de Performance"
+        + (" (com Composite Score)" if include_composite else ""),
         xaxis_title="Pergunta",
         yaxis_title="Métrica",
     )
@@ -158,6 +205,7 @@ with st.sidebar:
 
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
+        df = calculate_composite_score(df)
         st.success(f"Carregado: {uploaded_file.name}")
     else:
         # Try multiple paths (root and streamlit_app folder)
@@ -179,6 +227,10 @@ with st.sidebar:
 
     if not df.empty:
         st.metric("Total de Avaliações", len(df))
+
+        # New Toggle for Heatmap in Sidebar or main
+        st.header("🛠️ Opções de Visualização")
+        view_composite_heatmap = st.toggle("Mostrar Composite no Heatmap", value=True)
 
 if df.empty:
     st.warning("⚠️ Carregue um arquivo CSV com métricas RAGAS para visualizar.")
@@ -207,6 +259,26 @@ else:
     ]
     available_cols = [col for col in metrics_cols if col in df.columns]
 
+    # Display Composite Score in a distinct section
+    if "composite_score" in df.columns:
+        composite_avg = df["composite_score"].mean()
+        with st.container(border=True):
+            st.markdown("### 🏆 Avaliação Executiva")
+            col_cs, col_txt = st.columns([1, 2])
+            with col_cs:
+                st.metric("COMPOSITE SCORE", f"{composite_avg:.2%}")
+            with col_txt:
+                st.info(
+                    """
+                    **Métrica Customizada**: Média ponderada (Fidelidade 35%, Recall 30%, 
+                    Correção 20%, Precisão 15%) para reduzir ruído de falsos negativos.
+                    """
+                )
+        st.divider()
+
+    st.subheader("📊 Métricas RAGAS (Originais)")
+    # Display average metrics as cards
+    available_cols = [col for col in metrics_cols if col in df.columns]
     cols = st.columns(len(available_cols))
     for i, col in enumerate(available_cols):
         with cols[i]:
@@ -230,7 +302,9 @@ else:
             st.plotly_chart(radar_fig, use_container_width=True)
 
     with col2:
-        heatmap_fig = create_metrics_heatmap(df)
+        heatmap_fig = create_metrics_heatmap(
+            df, include_composite=view_composite_heatmap
+        )
         if heatmap_fig:
             st.plotly_chart(heatmap_fig, use_container_width=True)
 
@@ -274,6 +348,9 @@ else:
                 st.write(row.get("reference", "N/A"))
 
                 st.subheader("📊 Métricas")
+                if "composite_score" in row:
+                    st.write(f"🏆 **Composite Score**: {row['composite_score']:.2%}")
+
                 for col in available_cols:
                     val = row.get(col, 0)
                     color = "🟢" if val >= 0.7 else "🟡" if val >= 0.4 else "🔴"

@@ -117,7 +117,7 @@ def main():
         # LLM provider
         llm_provider = st.selectbox(
             "LLM Provider",
-            options=["gemini", "groq", "ollama", "perplexity"],
+            options=["gemini", "groq"],
             index=0,
         )
 

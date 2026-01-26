@@ -36,6 +36,7 @@ This project implements a modular, high-performance RAG pipeline designed to sol
     - [Streamlit UI](#streamlit-ui)
     - [CLI Tools](#cli-tools)
   - [📊 Evaluation](#-evaluation)
+    - [Composite Evaluation Score](#composite-evaluation-score)
   - [📄 License](#-license)
 
 ---
@@ -198,6 +199,28 @@ We use **RAGAS** to quantitatively measure pipeline performance.
    ```
 3. **Analyze Results**:
    Open the **Evaluation Dashboard** in the Streamlit app to view radar charts and heatmaps.
+
+---
+
+### Composite Evaluation Score
+
+Raw RAGAS metrics can be misleading when evaluating legal and insurance documents.
+
+We introduce a **Composite Score**, a weighted metric designed to:
+- Reduce false negatives caused by paraphrasing
+- Deprioritize OCR-related noise
+- Emphasize faithfulness and context recall for contractual safety
+
+The Composite Score is computed as:
+
+CompositeScore =
+0.35 * Faithfulness +
+0.30 * ContextRecall +
+0.20 * AnswerCorrectness +
+0.15 * ContextPrecision
+
+This score is shown alongside raw metrics in the Evaluation Dashboard
+to support more realistic interpretation of RAG performance.
 
 ---
 

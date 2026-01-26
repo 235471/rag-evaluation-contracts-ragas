@@ -143,7 +143,7 @@ def get_llm(
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         return ChatGoogleGenerativeAI(
-            model=model or "gemini-2.5-flash",
+            model=model or "gemini-2.5-flash-lite",
             google_api_key=settings.GOOGLE_API_KEY,
             temperature=temperature,
         )
@@ -151,7 +151,7 @@ def get_llm(
         from langchain_groq import ChatGroq
 
         return ChatGroq(
-            model=model or "qwen/qwen3-32b",
+            model=model or "llama-3.3-70b-versatile",
             api_key=settings.GROQ_API_KEY,
             temperature=temperature,
         )
