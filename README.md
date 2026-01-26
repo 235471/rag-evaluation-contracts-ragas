@@ -124,7 +124,7 @@ langchain-advanced-rag/
 
 ### 1. Clone & Env
 ```bash
-git clone https://github.com/yourusername/langchain-advanced-rag.git
+git clone https://github.com/235471/rag-evaluation-contracts-ragas.git
 cd langchain-advanced-rag
 
 python -m venv venv
