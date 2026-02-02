@@ -138,23 +138,37 @@ def llm_rerank_docs(
     reranker_prompt = get_reranker_prompt()
     reranker_chain = reranker_prompt | llm | StrOutputParser()
 
-    scored_docs = []
+    # Prepare batch inputs for parallel processing
+    batch_inputs = [{"query": query, "document": doc.page_content} for doc in docs]
 
-    for i, doc in enumerate(docs):
+    # Execute all scoring requests in parallel
+    logger.debug(f"Scoring {len(docs)} documents in parallel using batch()...")
+    try:
+        score_strings = reranker_chain.batch(batch_inputs)
+    except Exception as e:
+        logger.error(f"Batch processing failed: {e}, falling back to sequential")
+        # Fallback to sequential processing if batch fails
+        score_strings = []
+        for inp in batch_inputs:
+            try:
+                score_strings.append(reranker_chain.invoke(inp))
+            except Exception as doc_error:
+                logger.warning(f"Failed to score document: {doc_error}")
+                score_strings.append("5")  # Default score
+
+    # Parse scores and pair with documents
+    scored_docs = []
+    for i, (score_str, doc) in enumerate(zip(score_strings, docs)):
         try:
-            score_str = reranker_chain.invoke(
-                {
-                    "query": query,
-                    "document": doc.page_content,
-                }
-            )
             # Parse score (handle potential text around the number)
             score = int("".join(filter(str.isdigit, score_str[:5])) or "5")
             score = max(1, min(10, score))  # Clamp to 1-10
             scored_docs.append((score, doc))
             logger.debug(f"Doc {i+1}/{len(docs)}: score={score}")
         except Exception as e:
-            logger.warning(f"Failed to score doc {i+1}: {e}, assigning default score 5")
+            logger.warning(
+                f"Failed to parse score for doc {i+1}: {e}, assigning default score 5"
+            )
             scored_docs.append((5, doc))
 
     # Sort by score descending and take top_k
