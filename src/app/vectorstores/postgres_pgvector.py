@@ -169,3 +169,76 @@ def bootstrap_pgvector_table(
         finally:
             if "conn" in locals() and conn:
                 conn.close()
+
+
+def bootstrap_cache_table(
+    table_name: str = "semantic_cache",
+    vector_size: int = 768,
+    schema: str = "public",
+) -> None:
+    """
+    Create the semantic cache table for storing question-answer pairs.
+
+    This table has a different schema than the LangChain vectorstore tables,
+    so we use raw SQL instead of PGEngine.
+
+    Args:
+        table_name: Name of the cache table to create
+        vector_size: Dimension of the embedding vectors
+        schema: Schema name (default: public)
+    """
+    import psycopg
+
+    settings = get_settings()
+
+    # Check if table already exists
+    if table_exists(table_name, schema=schema):
+        logger.info(f"Cache table '{table_name}' already exists, skipping creation")
+        return
+
+    pg_uri = settings.POSTGRES_URL.replace("postgresql+psycopg://", "postgresql://")
+
+    try:
+        conn = psycopg.connect(pg_uri)
+        with conn.cursor() as cur:
+            # Ensure pgvector extension exists
+            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
+            # Create cache table
+            cur.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {schema}.{table_name} (
+                    id SERIAL PRIMARY KEY,
+                    question_text TEXT NOT NULL,
+                    question_embedding VECTOR({vector_size}) NOT NULL,
+                    answer_text TEXT NOT NULL,
+                    chain_type VARCHAR(50) NOT NULL DEFAULT 'full',
+                    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+
+            # Create HNSW index for fast cosine similarity search
+            index_name = f"idx_hnsw_{table_name}"
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS {index_name}
+                ON {schema}.{table_name}
+                USING hnsw (question_embedding vector_cosine_ops)
+                """
+            )
+
+            conn.commit()
+
+        logger.info(
+            f"Created cache table: {schema}.{table_name} "
+            f"(vector_size={vector_size}) with HNSW index"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to create cache table: {e}")
+        raise
+    finally:
+        if "conn" in locals() and conn:
+            conn.close()

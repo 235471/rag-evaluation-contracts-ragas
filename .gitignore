@@ -1,6 +1,6 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
-
+melhorias.MD
 my_eval.json
 docker-compose.yml
 *.ipynb

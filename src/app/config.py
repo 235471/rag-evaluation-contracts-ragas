@@ -68,6 +68,17 @@ class Settings:
         )
     )
 
+    # Semantic Cache
+    CACHE_TABLE_NAME: str = field(
+        default_factory=lambda: os.getenv("CACHE_TABLE_NAME", "semantic_cache")
+    )
+    CACHE_SIMILARITY_THRESHOLD: float = field(
+        default_factory=lambda: float(os.getenv("CACHE_SIMILARITY_THRESHOLD", "0.92"))
+    )
+    CACHE_EMBEDDING_DIMENSION: int = field(
+        default_factory=lambda: int(os.getenv("CACHE_EMBEDDING_DIMENSION", "768"))
+    )
+
     def validate(self) -> list[str]:
         """Validate required settings are present. Returns list of missing keys."""
         missing = []
@@ -118,6 +129,34 @@ def get_embeddings(provider: Optional[str] = None):
         return OllamaEmbeddings(model="qllama/bge-small-en-v1.5")
     else:
         raise ValueError(f"Unknown embedding provider: {provider}")
+
+
+def get_cache_embeddings():
+    """
+    Factory function to get embeddings for semantic cache.
+
+    Uses reduced dimensionality (default: 768) via Matryoshka truncation,
+    since cache only compares questions to questions, not to document chunks.
+    This avoids the HNSW 2000-dimension limit in pgvector.
+
+    Returns:
+        Embeddings instance with reduced output_dimensionality
+    """
+    settings = get_settings()
+    dim = settings.CACHE_EMBEDDING_DIMENSION
+
+    if settings.EMBEDDING_PROVIDER == "gemini":
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+        return GoogleGenerativeAIEmbeddings(
+            model="gemini-embedding-001",
+            google_api_key=settings.GOOGLE_API_KEY,
+            task_type="semantic_similarity",
+            output_dimensionality=dim,
+        )
+    else:
+        # For non-Gemini providers, use the standard embeddings
+        return get_embeddings()
 
 
 def get_llm(

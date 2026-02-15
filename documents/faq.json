@@ -1,0 +1,54 @@
+[
+    {
+        "question": "Quem está coberto pelo Seguro Garantia Estendida Original descrito no Guia de Benefícios?",
+        "answer": "Os portadores de cartão Mastercard Gold."
+    },
+    {
+        "question": "Qual é o prazo máximo adicional concedido pela Garantia Estendida Original além da garantia do fabricante?",
+        "answer": "A cobertura da Garantia Estendida Original dobra a garantia de fábrica do bem elegível, limitada a 12 meses."
+    },
+    {
+        "question": "É necessário emitir Bilhete de Seguro para ter direito ao benefício de Compra Protegida?",
+        "answer": "Para este benefício não há necessidade de emissão de Bilhete de Seguro."
+    },
+    {
+        "question": "Qual é o valor máximo de indenização por incidente na cobertura de Compra Protegida?",
+        "answer": "O valor máximo do benefício é de até USD 200 por incidente."
+    },
+    {
+        "question": "Por quanto tempo a Proteção de Preço pode ser acionada após a data da compra?",
+        "answer": "No prazo de 30 dias a partir da data da compra."
+    },
+    {
+        "question": "Uma compra realizada integralmente com pontos de um programa de recompensas pode ser considerada Compra Coberta?",
+        "answer": "Itens comprados integralmente com o seu cartão Mastercard Gold e/ou adquiridos com pontos ganhos por meio de um programa de recompensas ligado ao seu cartão elegível."
+    },
+    {
+        "question": "Qual é o valor mínimo exigido para que uma compra seja elegível à Garantia Estendida Original?",
+        "answer": "O preço mínimo da compra original deverá ser de, no mínimo, USD 50."
+    },
+    {
+        "question": "Compras feitas como presente para terceiros continuam elegíveis na Garantia Estendida Original?",
+        "answer": "As Compras Cobertas dadas como presente estão incluídas."
+    },
+    {
+        "question": "A cobertura da Garantia Estendida Original pode ultrapassar três anos somando garantia do fabricante e extensão?",
+        "answer": "A soma da garantias do fornecedor/fabricante e da garantia estendida não poderá superar 36 meses."
+    },
+    {
+        "question": "Para a Proteção de Preço, o anúncio com valor inferior precisa ser publicado em qual prazo?",
+        "answer": "O Anúncio Impresso deve ser publicado dentro de 30 dias a partir da data de sua compra original."
+    },
+    {
+        "question": "Uma compra feita fora do Brasil pode ser coberta pela Garantia Estendida Original desde que haja assistência técnica local?",
+        "answer": "Seguro Garantia Estendida Original se aplica a compras feitas em qualquer lugar do mundo, desde que haja uma rede autorizada do Fornecedor para consertos e peças no Brasil."
+    },
+    {
+        "question": "Caso o portador deixe de emitir o Bilhete de Seguro antes do término da garantia do fabricante, ainda há cobertura?",
+        "answer": "A não emissão tempestiva do Bilhete de Seguro implicará em inexistência de cobertura securitária."
+    },
+    {
+        "question": "Caso o mesmo item possua dois Bilhetes de Seguro de Garantia Estendida emitidos em períodos distintos, os benefícios se acumulam?",
+        "answer": "Os benefícios não serão acumulados em caso de sinistro."
+    }
+]
